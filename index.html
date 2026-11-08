@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>A Little Question for Pathu 🐾</title>
+  <meta name="description" content="A tiny romantic world of cats, hearts and one very important question, made just for Pathu." />
+  
+  <!-- Google Fonts used in the original app -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Pacifico&family=Quicksand:wght@400;500;600;700&display=swap" />
+  
+  <!-- Original tailwind styles bundle -->
+  <link rel="stylesheet" href="assets/styles-BmMNKZJW.css" />
+
+  <!-- Confetti library for high performance celebration effects -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* Smooth transitions and layout enhancements */
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
+
+    .screen-container {
+      transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+
+    .screen-enter {
+      opacity: 0;
+      transform: translateY(28px) scale(0.985);
+    }
+
+    .screen-active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .screen-exit {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.985);
+      pointer-events: none;
+    }
+
+    /* Floating rise animation for hearts background */
+    @keyframes heartRise {
+      0% {
+        transform: translateY(0) translateX(0) scale(0.85);
+        opacity: 0;
+      }
+      15% {
+        opacity: var(--rise-opacity, 0.45);
+      }
+      80% {
+        opacity: var(--rise-opacity, 0.45);
+      }
+      100% {
+        transform: translateY(-110vh) translateX(var(--rise-drift, 0vw)) scale(1.15);
+        opacity: 0;
+      }
+    }
+
+    .animate-rise {
+      animation: heartRise linear infinite;
+    }
+
+    /* Peeking cat slide in animation */
+    .peek-in {
+      transform: translateX(0) !important;
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+
+    .peek-out {
+      transform: translateX(130px) !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* Evasive runaway button */
+    .btn-runaway {
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="relative min-h-svh overflow-x-hidden overflow-y-auto bg-dreamy text-foreground selection:bg-primary/20">
+
+  <!-- Background Floating Paw Prints, Hearts and Twinkling Stars -->
+  <div id="bg-layer" aria-hidden="true" class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <!-- Static paws decoration on bottom left -->
+    <div class="absolute bottom-6 left-2 flex flex-col gap-6 opacity-[0.08] sm:left-6">
+      <span class="text-3xl text-foreground" style="transform: rotate(-14deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(10deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(-14deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(10deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(-14deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(10deg);">🐾</span>
+    </div>
+    <!-- Static paws decoration on top right -->
+    <div class="absolute right-2 top-10 flex rotate-180 flex-col gap-6 opacity-[0.08] sm:right-6">
+      <span class="text-3xl text-foreground" style="transform: rotate(12deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(-10deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(12deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(-10deg);">🐾</span>
+      <span class="text-3xl text-foreground" style="transform: rotate(12deg);">🐾</span>
+    </div>
+
+    <!-- Container for dynamic floating hearts and twinkling stars -->
+    <div id="bg-dynamic"></div>
+  </div>
+
+  <!-- Top Notification / Toast Message -->
+  <div class="pointer-events-none fixed inset-x-0 top-5 z-50 flex justify-center px-4">
+    <div id="toast-message" class="card-soft max-w-[92vw] rounded-full px-5 py-2.5 text-center font-hand text-xl text-accent-foreground shadow-lg transition-all duration-300 sm:text-2xl opacity-0 -translate-y-4 scale-95 pointer-events-none">
+    </div>
+  </div>
+
+  <!-- Main Dynamic View Container -->
+  <main id="app" class="relative z-10"></main>
+
+  <!-- Peeking Cat on Bottom-Right -->
+  <div id="peeking-cat-wrap" aria-hidden="true" class="fixed bottom-2 right-2 z-40 transition-all duration-500 sm:bottom-3 sm:right-4 peek-out" style="transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);">
+    <button id="peeking-bubble" class="mb-2 ml-auto mr-2 block max-w-[15rem] cursor-pointer rounded-3xl bg-card/95 px-4 py-2.5 text-right font-hand text-xl leading-snug text-accent-foreground shadow-lg backdrop-blur transition-transform active:scale-95">
+      Meowww! 🐾
+    </button>
+    <button id="peeking-cat-btn" aria-label="A little cat with a message for you" class="block cursor-pointer outline-none transition-transform hover:scale-105 active:scale-95">
+      <img src="assets/cat-peek-BdGuiaQT.webp" width="640" height="640" alt="" class="cat-glow w-20 sm:w-28" loading="lazy" />
+    </button>
+  </div>
+
+  <!-- Soft Music Player Button on Bottom-Left -->
+  <button id="music-btn" aria-label="Play soft romantic music" title="Soft music" class="btn-heart card-soft fixed bottom-4 left-4 z-40 flex h-12 w-12 items-center justify-center rounded-full text-xl shadow-md backdrop-blur transition-transform hover:scale-105 active:scale-90 sm:h-14 sm:w-14 sm:text-2xl">
+    <span id="music-icon" class="text-muted-foreground transition-colors duration-200">♪</span>
+  </button>
+
+  <!-- Application Logic & Synthesizer -->
+  <script>
+    /* =====================================================================
+       1. Soft Romantic Background Synthesizer (Exact match with original audio)
+       ===================================================================== */
+    class RomanticAudioPlayer {
+      static MELODY = [
+        659.25, null, 783.99, null, 1046.5, null, 783.99, null,
+        880, null, 783.99, null, 659.25, 587.33, null, null,
+        698.46, null, 880, null, 1046.5, null, 880, null,
+        783.99, null, 659.25, 587.33, 523.25, null, null, null
+      ];
+      static BASS = [130.81, 110, 87.31, 98];
+
+      constructor() {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        this.ctx = new AudioCtx();
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 3200;
+
+        this.master = this.ctx.createGain();
+        this.master.gain.value = 0;
+        this.master.connect(filter);
+        filter.connect(this.ctx.destination);
+        this.step = 0;
+      }
+
+      note(freq, time, duration, type, gainVal) {
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, time);
+        gain.gain.linearRampToValueAtTime(gainVal, time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+        osc.connect(gain);
+        gain.connect(this.master);
+        osc.start(time);
+        osc.stop(time + duration + 0.1);
+      }
+
+      tick = () => {
+        const time = this.ctx.currentTime + 0.06;
+        const noteIndex = this.step % RomanticAudioPlayer.MELODY.length;
+        const melodyFreq = RomanticAudioPlayer.MELODY[noteIndex];
+        if (melodyFreq) {
+          this.note(melodyFreq, time, 1.5, 'triangle', 0.5);
+        }
+        if (noteIndex % 8 === 0) {
+          const bassIdx = Math.floor(noteIndex / 8) % RomanticAudioPlayer.BASS.length;
+          const bassFreq = RomanticAudioPlayer.BASS[bassIdx] ?? 130.81;
+          this.note(bassFreq, time, 3.2, 'sine', 0.35);
+        }
+        this.step += 1;
+      };
+
+      start() {
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+        this.master.gain.setTargetAtTime(0.16, this.ctx.currentTime, 0.5);
+        this.tick();
+        this.timer = window.setInterval(this.tick, 320);
+      }
+
+      stop() {
+        this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.25);
+        window.clearInterval(this.timer);
+      }
+    }
+
+    let audioPlayer = null;
+    let isMusicPlaying = false;
+    const musicBtn = document.getElementById('music-btn');
+    const musicIcon = document.getElementById('music-icon');
+
+    musicBtn.addEventListener('click', () => {
+      if (isMusicPlaying) {
+        audioPlayer?.stop();
+        isMusicPlaying = false;
+        musicIcon.className = 'text-muted-foreground';
+        musicBtn.setAttribute('aria-label', 'Play soft romantic music');
+      } else {
+        if (!audioPlayer) audioPlayer = new RomanticAudioPlayer();
+        audioPlayer.start();
+        isMusicPlaying = true;
+        musicIcon.className = 'animate-wiggle text-primary inline-block';
+        musicBtn.setAttribute('aria-label', 'Pause the soft music');
+      }
+    });
+
+    /* =====================================================================
+       2. Dynamic Floating Background Decor
+       ===================================================================== */
+    const bgDynamic = document.getElementById('bg-dynamic');
+    const heartChars = ['💗', '🩷', '💜', '🌸', '🤍'];
+
+    // 22 Twinkling stars
+    for (let i = 0; i < 22; i++) {
+      const star = document.createElement('span');
+      star.className = 'absolute animate-twinkle text-primary/70';
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.fontSize = `${8 + Math.random() * 12}px`;
+      star.style.animationDelay = `${Math.random() * 4}s`;
+      star.textContent = i % 4 === 0 ? '✨' : '✦';
+      bgDynamic.appendChild(star);
+    }
+
+    // 12 Rising floaty hearts
+    for (let i = 0; i < 12; i++) {
+      const heart = document.createElement('span');
+      heart.className = 'absolute -bottom-6 animate-rise';
+      const left = `${(i * 8.5 + Math.random() * 6) % 96}%`;
+      const size = 14 + Math.random() * 18;
+      const duration = 11 + Math.random() * 9;
+      const delay = Math.random() * 14;
+      const drift = `${(Math.random() - 0.5) * 8}vw`;
+      const opacity = 0.25 + Math.random() * 0.3;
+      const char = heartChars[i % heartChars.length];
+
+      heart.style.left = left;
+      heart.style.fontSize = `${size}px`;
+      heart.style.animationDuration = `${duration}s`;
+      heart.style.animationDelay = `${delay}s`;
+      heart.style.setProperty('--rise-drift', drift);
+      heart.style.setProperty('--rise-opacity', opacity);
+      heart.textContent = char;
+      bgDynamic.appendChild(heart);
+    }
+
+    /* =====================================================================
+       3. Peeking Cat Periodic Messages
+       ===================================================================== */
+    const peekingMessages = [
+      "Psst... Pathu, someone really likes you! 💌",
+      "Meowww! Someone is waiting for your answer. 🐾",
+      "You're as adorable as this little kitten! 🌸",
+      "This cat approves of you. 🐾",
+      "Just a tiny cat, reminding you that you're loved. 💗"
+    ];
+
+    let peekIndex = Math.floor(Math.random() * peekingMessages.length);
+    let peekHideTimer, peekCycleTimer;
+    const peekingWrap = document.getElementById('peeking-cat-wrap');
+    const peekingBubble = document.getElementById('peeking-bubble');
+    const peekingCatBtn = document.getElementById('peeking-cat-btn');
+
+    function hidePeekingCat() {
+      peekingWrap.classList.remove('peek-in');
+      peekingWrap.classList.add('peek-out');
+    }
+
+    function showPeekingCat() {
+      peekingBubble.textContent = peekingMessages[peekIndex % peekingMessages.length];
+      peekingWrap.classList.remove('peek-out');
+      peekingWrap.classList.add('peek-in');
+      window.clearTimeout(peekHideTimer);
+      peekHideTimer = window.setTimeout(hidePeekingCat, 9000);
+    }
+
+    function nextPeekMessage() {
+      peekIndex = (peekIndex + 1) % peekingMessages.length;
+      showPeekingCat();
+    }
+
+    peekingBubble.addEventListener('click', nextPeekMessage);
+    peekingCatBtn.addEventListener('click', nextPeekMessage);
+
+    function schedulePeeking() {
+      peekCycleTimer = window.setTimeout(() => {
+        peekIndex = Math.floor(Math.random() * peekingMessages.length);
+        showPeekingCat();
+        peekCycleTimer = window.setInterval(() => {
+          peekIndex = Math.floor(Math.random() * peekingMessages.length);
+          showPeekingCat();
+        }, 24000);
+      }, 7000);
+    }
+    schedulePeeking();
+
+    /* =====================================================================
+       4. Toast Floating Notification
+       ===================================================================== */
+    const toastEl = document.getElementById('toast-message');
+    let toastTimeout;
+
+    function showToast(msg) {
+      if (!msg) return;
+      window.clearTimeout(toastTimeout);
+      toastEl.textContent = msg;
+      toastEl.classList.remove('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+      toastEl.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+      toastTimeout = window.setTimeout(() => {
+        toastEl.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+        toastEl.classList.add('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+      }, 4500);
+    }
+
+    /* =====================================================================
+       5. Questions & Confirmation Flow Data
+       ===================================================================== */
+    const introParagraphs = [
+      "Pathu, I know there were times when I troubled you. Maybe I annoyed you, made things difficult, or did things I shouldn't have. I know I haven't always been perfect.",
+      "But one thing I never want you to doubt is that my feelings for you are genuine.",
+      "I don't know how to put everything into words, but my love for you is unconditional and unending.",
+      "I'm not here to promise that I'll be perfect. I'm here because you mean something special to me, and I wanted to tell you how I truly feel."
+    ];
+
+    const confirmationQuestions = [
+      {
+        image: "assets/cat-peek-BdGuiaQT.webp",
+        alt: "A curious kitten peeking playfully around a corner",
+        text: "Waittt! Are you sure, Pathu? 🥺",
+        yes: "Yes, I'm sure ❤️",
+        no: "Let me think...",
+        noToast: "Aww, take all the time you need, Pathu 🐾"
+      },
+      {
+        image: "assets/cat-think-C9F7yX0n.webp",
+        alt: "A thoughtful lavender kitten with a paw on its chin",
+        text: "Think once more! You're about to make a very important decision. 🐱",
+        yes: "I've already decided!",
+        no: "Maybe I should think...",
+        noToast: "No pressure at all — the question isn't going anywhere 💗"
+      },
+      {
+        image: "assets/cat-cheer-0_7hvyhL.webp",
+        alt: "A joyful kitten cheering with both paws in the air",
+        text: "Are you ready to tolerate my silly jokes, random messages and endless affection? 😂",
+        yes: "Absolutely!",
+        no: "I'm reconsidering...",
+        noToast: "Fair enough — my jokes are an acquired taste 😹 (Still here though!)"
+      },
+      {
+        image: "assets/cat-intro-C3D27QcR.webp",
+        alt: "A teary hopeful kitten looking up with big glossy eyes",
+        text: "Even on days when I'm annoying, will you still let me be a little part of your world? 🥹",
+        yes: "Yes, of course!",
+        no: "One more thought...",
+        noToast: "Whenever you're ready, Pathu. This little cat will wait 🐾"
+      },
+      {
+        image: "assets/cat-welcome-CL-FXzui.webp",
+        alt: "A sweet pink kitten holding a shiny heart with both paws",
+        text: "Last chance, Pathu! No pressure. Is that really your answer? ❤️",
+        yes: "YES, I CHOOSE YOU! 💗",
+        no: "I need more time.",
+        noToast: "Take your time — some questions deserve it 🌸"
+      }
+    ];
+
+    /* =====================================================================
+       5.5 Runaway Button Helper
+       ===================================================================== */
+    function makeButtonRunaway(btn) {
+      if (!btn) return;
+      btn.classList.add('btn-runaway');
+      let currentX = 0;
+      let currentY = 0;
+
+      function dodge(e) {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        // Calculate new random displacement between 70px and 160px in both directions
+        const angle = Math.random() * Math.PI * 2;
+        const distance = 90 + Math.random() * 80;
+        let newX = Math.cos(angle) * distance;
+        let newY = Math.sin(angle) * distance;
+
+        // Keep displacement inside a reasonable boundary so it never gets clipped or lost
+        if (Math.abs(newX) > 170) newX = Math.sign(newX) * 150;
+        if (Math.abs(newY) > 130) newY = Math.sign(newY) * 110;
+
+        currentX = newX;
+        currentY = newY;
+        btn.style.transform = `translate(${currentX}px, ${currentY}px) scale(0.95)`;
+      }
+
+      btn.addEventListener('mouseenter', dodge);
+      btn.addEventListener('touchstart', dodge, { passive: false });
+      btn.addEventListener('pointerdown', dodge);
+      btn.addEventListener('click', dodge);
+    }
+
+    /* =====================================================================
+       6. View Routing & Screen Rendering
+       ===================================================================== */
+    const app = document.getElementById('app');
+    let currentScreen = 'welcome';
+    let confirmStep = 0;
+    let celebrationConfettiTimer = null;
+
+    function renderScreen(screenName) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      currentScreen = screenName;
+
+      // Handle screen exit if container exists
+      const oldSection = app.querySelector('.screen-container');
+      if (oldSection) {
+        oldSection.classList.remove('screen-active');
+        oldSection.classList.add('screen-exit');
+        setTimeout(() => {
+          app.innerHTML = '';
+          const newEl = createScreenElement(screenName);
+          app.appendChild(newEl);
+          requestAnimationFrame(() => {
+            newEl.classList.remove('screen-enter');
+            newEl.classList.add('screen-active');
+          });
+        }, 250);
+      } else {
+        app.innerHTML = '';
+        const newEl = createScreenElement(screenName);
+        app.appendChild(newEl);
+        requestAnimationFrame(() => {
+          newEl.classList.remove('screen-enter');
+          newEl.classList.add('screen-active');
+        });
+      }
+    }
+
+    function createScreenElement(screen) {
+      const container = document.createElement('div');
+      container.className = 'screen-container screen-enter';
+
+      if (screen === 'welcome') {
+        container.innerHTML = `
+          <section class="flex min-h-svh flex-col items-center justify-center px-6 py-16 text-center">
+            <div class="flex flex-col items-center">
+              <img src="assets/cat-welcome-CL-FXzui.webp" width="640" height="640" alt="A cute pink kitten hugging a little heart" class="cat-glow animate-float-slow w-44 sm:w-56 md:w-64" />
+              <h1 class="text-glow-rose mt-8 font-display text-4xl text-primary sm:text-5xl md:text-6xl">Hey Pathu! 🐾</h1>
+              <p class="mt-5 font-hand text-2xl text-muted-foreground sm:text-3xl">I made something special for you...</p>
+              <button id="btn-welcome-next" class="btn-heart btn-shadow-rose mt-10 rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground sm:px-10 sm:text-lg">
+                Open your little surprise ❤️
+              </button>
+              <span class="animate-float-slower mt-8 text-2xl">✨</span>
+            </div>
+          </section>
+        `;
+        container.querySelector('#btn-welcome-next').onclick = () => renderScreen('intro');
+      } 
+      else if (screen === 'intro') {
+        container.innerHTML = `
+          <section class="flex min-h-svh flex-col items-center justify-center px-5 py-16 text-center">
+            <div class="card-soft flex w-full max-w-2xl flex-col items-center px-6 py-10 sm:px-12">
+              <img src="assets/cat-intro-C3D27QcR.webp" width="640" height="640" alt="A hopeful lavender kitten looking up with teary glossy eyes" class="cat-glow animate-float-slow w-32 sm:w-40 md:w-44" loading="lazy" />
+              <h2 class="mt-6 font-hand text-3xl font-semibold text-foreground sm:text-4xl">Before you go any further, there's something I want you to know...</h2>
+              <div id="typewriter-box" class="mt-6 min-h-[19rem] w-full cursor-pointer select-none text-left sm:min-h-[17rem]" title="Tap to skip"></div>
+              <button id="btn-intro-next" class="btn-heart btn-shadow-rose mt-6 hidden rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground sm:text-lg">
+                There's something I want to ask you...
+              </button>
+            </div>
+          </section>
+        `;
+
+        const fullIntroText = introParagraphs.join('\n\n');
+        const box = container.querySelector('#typewriter-box');
+        const nextBtn = container.querySelector('#btn-intro-next');
+        let charIndex = 0;
+        let isDone = false;
+
+        function updateTypewriter() {
+          const displayed = fullIntroText.slice(0, charIndex);
+          const paras = displayed.split('\n\n');
+          box.innerHTML = paras.map((p, idx) => `
+            <p class="font-hand text-xl leading-relaxed text-foreground/90 sm:text-2xl mt-4 first:mt-0">
+              ${p}${idx === paras.length - 1 && !isDone ? '<span class="animate-pulse text-primary font-bold">▍</span>' : ''}
+            </p>
+          `).join('');
+
+          if (isDone) {
+            nextBtn.classList.remove('hidden');
+            nextBtn.classList.add('inline-block');
+          }
+        }
+
+        const typeInterval = setInterval(() => {
+          if (charIndex < fullIntroText.length) {
+            charIndex += 2;
+            if (charIndex >= fullIntroText.length) {
+              charIndex = fullIntroText.length;
+              isDone = true;
+              clearInterval(typeInterval);
+            }
+            updateTypewriter();
+          }
+        }, 26);
+
+        box.onclick = () => {
+          charIndex = fullIntroText.length;
+          isDone = true;
+          clearInterval(typeInterval);
+          updateTypewriter();
+        };
+
+        nextBtn.onclick = () => renderScreen('proposal');
+      }
+      else if (screen === 'proposal') {
+        let isGentleMode = false;
+
+        function renderProposalContent() {
+          if (isGentleMode) {
+            container.innerHTML = `
+              <section class="flex min-h-svh items-center justify-center px-5 py-16">
+                <div class="card-soft flex w-full max-w-lg flex-col items-center px-6 py-10 text-center sm:px-12">
+                  <img src="assets/cat-intro-C3D27QcR.webp" width="640" height="640" alt="A teary hopeful kitten waiting patiently" class="cat-glow animate-float-slow w-32 sm:w-40" loading="lazy" />
+                  <h2 class="mt-6 font-display text-2xl text-primary sm:text-3xl">It's completely okay, Pathu 🐾</h2>
+                  <p class="mt-4 font-hand text-xl leading-relaxed text-foreground/90 sm:text-2xl">
+                    You never have to rush a feeling like this. This little question will wait right here — no pressure, no hurry, ever. 💗
+                  </p>
+                  <button id="btn-gentle-back" class="btn-heart btn-shadow-lav mt-8 rounded-full bg-secondary px-8 py-4 text-base font-bold text-secondary-foreground sm:text-lg">
+                    Take your time ❤️
+                  </button>
+                </div>
+              </section>
+            `;
+            container.querySelector('#btn-gentle-back').onclick = () => {
+              isGentleMode = false;
+              renderProposalContent();
+            };
+          } else {
+            container.innerHTML = `
+              <section class="flex min-h-svh items-center justify-center px-5 py-16">
+                <div class="card-soft flex w-full max-w-lg flex-col items-center px-6 py-10 text-center sm:px-12">
+                  <div class="relative">
+                    <img src="assets/cat-couple-BLmghySK.webp" width="640" height="640" alt="Two adorable kittens sitting together with hearts floating above them" class="cat-glow animate-float-slow w-44 sm:w-52 md:w-56" loading="lazy" />
+                    <span class="animate-heartbeat absolute -right-3 -top-2 text-3xl sm:-right-5 sm:text-4xl">💗</span>
+                    <span class="animate-heartbeat absolute -left-3 top-8 text-2xl sm:-left-5" style="animation-delay: 0.4s;">💕</span>
+                  </div>
+                  <h2 class="text-glow-rose mt-6 font-display text-3xl leading-snug text-primary sm:text-4xl">Pathu, will you be mine? ❤️</h2>
+                  <div class="mt-8 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                    <button id="btn-proposal-yes" class="btn-heart btn-shadow-rose w-full rounded-full bg-primary px-10 py-4 text-lg font-bold text-primary-foreground sm:w-auto">
+                      YES! ❤️
+                    </button>
+                    <button id="btn-proposal-no" class="btn-heart hover:animate-wiggle w-full rounded-full border border-input bg-card px-10 py-4 text-lg font-bold text-foreground sm:w-auto">
+                      NO 🙈
+                    </button>
+                  </div>
+                  <p class="mt-6 font-hand text-lg text-muted-foreground sm:text-xl">(Either way, you're the best part of my days.)</p>
+                </div>
+              </section>
+            `;
+            container.querySelector('#btn-proposal-yes').onclick = () => {
+              confirmStep = 0;
+              renderScreen('confirm');
+            };
+            makeButtonRunaway(container.querySelector('#btn-proposal-no'));
+          }
+        }
+        renderProposalContent();
+      }
+      else if (screen === 'confirm') {
+        const q = confirmationQuestions[confirmStep];
+        const total = confirmationQuestions.length;
+
+        const heartsProgress = Array.from({ length: total }, (_, i) => {
+          let cls = 'text-xl text-muted-foreground/40 sm:text-2xl';
+          if (i === confirmStep) cls = 'animate-heartbeat text-xl sm:text-2xl';
+          else if (i < confirmStep) cls = 'text-xl text-roseglow sm:text-2xl';
+          return `<span class="${cls}">${i <= confirmStep ? '❤️' : '🤍'}</span>`;
+        }).join('');
+
+        container.innerHTML = `
+          <section class="flex min-h-svh items-center justify-center px-5 py-16">
+            <div class="card-soft flex w-full max-w-lg flex-col items-center px-6 py-10 text-center sm:px-12">
+              <div class="flex items-center gap-2" aria-label="Question ${confirmStep + 1} of ${total}">
+                ${heartsProgress}
+              </div>
+              <img src="${q.image}" width="640" height="640" alt="${q.alt}" class="cat-glow animate-float-slow mt-6 w-36 sm:w-44" loading="lazy" />
+              <h2 class="mt-6 font-hand text-3xl font-semibold leading-snug text-foreground sm:text-4xl">${q.text}</h2>
+              <div class="mt-8 flex w-full flex-col items-center gap-4 sm:flex-row sm:justify-center">
+                <button id="btn-confirm-yes" class="btn-heart btn-shadow-rose w-full rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground sm:w-auto sm:text-lg">
+                  ${q.yes}
+                </button>
+                <button id="btn-confirm-no" class="btn-heart hover:animate-wiggle w-full rounded-full border border-input bg-card px-8 py-4 text-base font-bold text-foreground sm:w-auto sm:text-lg">
+                  ${q.no}
+                </button>
+              </div>
+              <p class="mt-6 font-hand text-lg text-muted-foreground sm:text-xl">(There's no wrong answer here — except maybe leaving this little cat on read. 🐱)</p>
+            </div>
+          </section>
+        `;
+
+        container.querySelector('#btn-confirm-yes').onclick = () => {
+          if (confirmStep < total - 1) {
+            confirmStep++;
+            renderScreen('confirm');
+          } else {
+            renderScreen('celebration');
+          }
+        };
+
+        makeButtonRunaway(container.querySelector('#btn-confirm-no'));
+      }
+      else if (screen === 'celebration') {
+        const pawSpanList = Array.from({ length: 5 }, (_, idx) => 
+          `<span class="animate-pop-in text-primary/80" style="animation-delay: ${0.5 + idx * 0.25}s; transform: rotate(${idx % 2 ? 10 : -12}deg);">🐾</span>`
+        ).join('');
+
+        container.innerHTML = `
+          <section class="flex min-h-svh flex-col items-center justify-center px-5 py-16 text-center">
+            <div class="flex w-full max-w-2xl flex-col items-center">
+              <h2 class="text-glow-rose font-display text-4xl text-primary sm:text-5xl md:text-6xl animate-pop-in">
+                SHE SAID YES! ❤️🐾
+              </h2>
+              <img src="assets/cat-cuddle-CnVRVTVJ.webp" width="640" height="640" alt="Two adorable kittens cuddling happily, surrounded by hearts and sparkles" class="cat-glow animate-float-slow mt-8 w-56 sm:w-64 md:w-72" loading="lazy" />
+              
+              <div class="mt-6 flex gap-2 text-2xl sm:text-3xl" aria-hidden="true">
+                ${pawSpanList}
+              </div>
+
+              <div class="card-soft mt-8 px-6 py-8 text-left sm:px-10">
+                <p class="font-hand text-2xl leading-relaxed text-foreground/90 sm:text-3xl">
+                  Pathu, you have no idea how happy this little YES makes me.
+                </p>
+                <p class="mt-5 font-hand text-xl leading-relaxed text-foreground/85 sm:text-2xl">
+                  I know love isn't about being perfect. It's about understanding, patience, respect, care and choosing each other every day.
+                </p>
+                <p class="mt-5 font-hand text-xl leading-relaxed text-foreground/85 sm:text-2xl">
+                  I cannot promise a perfect journey, but I can promise that my feelings are genuine.
+                </p>
+                <p class="mt-5 font-hand text-xl leading-relaxed text-foreground/85 sm:text-2xl">
+                  Thank you for being you.
+                </p>
+                <p class="mt-5 font-hand text-xl leading-relaxed text-foreground/85 sm:text-2xl">
+                  If this is the beginning of something beautiful, I'd love to make every little moment count.
+                </p>
+                <p class="text-glow-rose mt-7 text-right font-hand text-2xl font-semibold text-primary sm:text-3xl">
+                  Forever your biggest admirer. ❤️
+                </p>
+              </div>
+
+              <p class="mt-8 font-display text-2xl text-secondary-foreground sm:text-3xl">
+                Two little hearts. One beautiful story. 🐱💗
+              </p>
+              <button id="btn-replay" class="btn-heart btn-shadow-lav mt-8 rounded-full bg-secondary px-8 py-4 text-base font-bold text-secondary-foreground sm:text-lg">
+                Relive our little story 🐾
+              </button>
+            </div>
+          </section>
+        `;
+
+        container.querySelector('#btn-replay').onclick = () => {
+          if (celebrationConfettiTimer) clearInterval(celebrationConfettiTimer);
+          confirmStep = 0;
+          renderScreen('welcome');
+        };
+
+        // Trigger celebratory confetti cannons
+        launchConfetti();
+      }
+
+      return container;
+    }
+
+    /* Confetti blast function */
+    function launchConfetti() {
+      if (typeof confetti === 'undefined') return;
+
+      const colors = ['#ffb7c9', '#ffcfe0', '#e3aef5', '#b9a5f2', '#ffd9a8', '#ff8fb1'];
+      const heartShape = confetti.shapeFromText({ text: '❤️', scalar: 1.5 });
+      const pawShape = confetti.shapeFromText({ text: '🐾', scalar: 1.5 });
+
+      function fireCannon() {
+        confetti({
+          particleCount: 26,
+          angle: 60,
+          spread: 70,
+          origin: { x: 0, y: 0.7 },
+          colors: colors
+        });
+        confetti({
+          particleCount: 26,
+          angle: 120,
+          spread: 70,
+          origin: { x: 1, y: 0.7 },
+          colors: colors
+        });
+        confetti({
+          particleCount: 18,
+          spread: 100,
+          startVelocity: 32,
+          origin: { x: 0.5, y: 0.5 },
+          shapes: [heartShape, pawShape],
+          scalar: 1.6
+        });
+      }
+
+      fireCannon();
+      if (celebrationConfettiTimer) clearInterval(celebrationConfettiTimer);
+      celebrationConfettiTimer = setInterval(fireCannon, 1800);
+      setTimeout(() => clearInterval(celebrationConfettiTimer), 11000);
+    }
+
+    // Initialize first screen
+    renderScreen('welcome');
+  </script>
+</body>
+</html>
